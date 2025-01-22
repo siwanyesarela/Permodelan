@@ -1,36 +1,58 @@
-# 1. Load Dataset
-data_moods = pd.read_csv('/content/data_moods.csv')
-
-# 2. Pilih kolom yang relevan
-selected_columns = ['name', 'artist', 'popularity', 'mood', 'danceability', 'energy', 'valence']
-data_moods = data_moods[selected_columns]
-
-# 3. Pisahkan fitur (X) dan label (y)
-X = data_moods.drop(columns=['mood'])  # Fitur
-y = data_moods['mood']  # Label (target)
-
-# 4. Split Dataset
+from sklearn.metrics import classification_report, accuracy_score
+import matplotlib.pyplot as plt
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=42
-)
+from sklearn.svm import SVC
 
-# 5. Preprocessing (Scaling)
-from sklearn.preprocessing import StandardScaler
+# Split dataset menjadi training dan testing set
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Pilih hanya kolom numerik untuk scaling
-numerical_columns = ['popularity', 'danceability', 'energy', 'valence']
-X_train_scaled = X_train.copy()
-X_test_scaled = X_test.copy()
+# 3. Model Building
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "SVM": SVC(),
+    "KNN": KNeighborsClassifier(),
+    "Gradient Boosting": GradientBoostingClassifier(),
+    "Gradient Boosted Trees": HistGradientBoostingClassifier()
+}
 
-scaler = StandardScaler()
-X_train_scaled[numerical_columns] = scaler.fit_transform(X_train[numerical_columns])
-X_test_scaled[numerical_columns] = scaler.transform(X_test[numerical_columns])
+# Dictionary untuk menyimpan hasil
+accuracies = {}
+precision_scores = {}
+recall_scores = {}
+f1_scores = {}
 
-# 6. Simpan Scaler
-import joblib
-scaler_filename = "Scaler.pkl"
-joblib.dump(scaler, scaler_filename)
-print(f"Scaler telah disimpan ke file: {scaler_filename}")
+# Melatih dan menguji model
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
 
-# 7. Load Scaler (untuk
+    # Menghitung metrik
+    accuracies[name] = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred, output_dict=True)
+
+    # Simpan nilai precision, recall, f1-score untuk masing-masing model
+    precision_scores[name] = report['macro avg']['precision']
+    recall_scores[name] = report['macro avg']['recall']
+    f1_scores[name] = report['macro avg']['f1-score']
+
+# 4. Visualisasi Akurasi
+plt.figure(figsize=(10, 6))
+plt.bar(accuracies.keys(), accuracies.values(), color=['blue', 'green', 'red', 'purple', 'orange'])
+plt.title("Model Accuracy Comparison")
+plt.ylabel("Accuracy")
+plt.xticks(rotation=45)
+plt.ylim(0, 1)
+plt.show()
+
+# Print akurasi, precision, recall, f1-score untuk setiap model
+for name in models.keys():
+    print(f"{name}:")
+    print(f"  Accuracy: {accuracies[name]:.2f}")
+    print(f"  Precision: {precision_scores[name]:.2f}")
+    print(f"  Recall: {recall_scores[name]:.2f}")
+    print(f"  F1-Score: {f1_scores[name]:.2f}")
+    print("-" * 50)
